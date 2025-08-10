@@ -1,0 +1,245 @@
+-- 1. Category
+CREATE TABLE category (
+    category_id INT PRIMARY KEY,
+    category_name VARCHAR(100)
+);
+
+
+-- 2. Subcategory
+CREATE TABLE subcategory (
+    subcategory_id INT PRIMARY KEY,
+    subcategory_name VARCHAR(100),
+    category_id INT
+);
+
+
+-- 3. Supplier
+CREATE TABLE supplier (
+    supplier_id INT PRIMARY KEY,
+    supplier_name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+
+-- 4. Product
+CREATE TABLE product (
+    product_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    price FLOAT,
+    description TEXT,
+    subcategory_id INT
+);
+
+-- 5. Customer
+CREATE TABLE customer (
+    customer_id INT PRIMARY KEY,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    email VARCHAR(100),
+    country VARCHAR(100)
+);
+
+
+-- 6. Marketing Campaigns
+CREATE TABLE marketing_campaigns (
+    campaign_id INT PRIMARY KEY,
+    campaign_name VARCHAR(100),
+    offer_week INT
+);
+
+
+-- 7. Payment Method
+CREATE TABLE payment_method (
+    payment_method_id INT PRIMARY KEY,
+    payment_method VARCHAR(50)
+);
+
+
+-- 8. Orders
+CREATE TABLE orders (
+    order_id_surrogate INT PRIMARY KEY,
+    order_id INT,
+    customer_id INT,
+    order_date DATE,
+    campaign_id INT,
+    amount INT,
+    payment_method_id INT
+);
+
+
+-- 9. OrderItem
+CREATE TABLE orderitem (
+    orderitem_id INT PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    supplier_id INT,
+    subtotal FLOAT,
+    discount FLOAT
+);
+
+
+
+
+-- 10. Returns
+CREATE TABLE returns (
+    return_id INT PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    return_date DATE,
+    reason VARCHAR(255),
+    amount_refunded FLOAT
+);
+
+
+-- 11. Customer Product Ratings
+CREATE TABLE customer_product_ratings (
+    customerproductrating_id INT PRIMARY KEY,
+    customer_id INT,
+    product_id INT,
+    ratings FLOAT,
+    review TEXT,
+    sentiment VARCHAR(10)
+);
+
+
+-- 12. Campaign Product Subcategory
+CREATE TABLE campaign_product_subcategory (
+    campaign_product_subcategory_id INT PRIMARY KEY,
+    campaign_id INT,
+    subcategory_id INT,
+    discount FLOAT
+);
+
+
+-- Sales Performance Analysis
+-- Total Revenue and Order Count
+SELECT 
+    COUNT(DISTINCT o.order_id) AS total_orders,
+    SUM(o.amount) AS total_revenue
+FROM orders o;
+
+
+-- Top 10 Best-Selling Products (by quantity)
+SELECT 
+    p.product_id,
+    p.name,
+    SUM(oi.quantity) AS total_quantity_sold
+FROM orderitem oi
+JOIN product p ON oi.product_id = p.product_id
+GROUP BY p.product_id, p.name
+ORDER BY total_quantity_sold DESC
+LIMIT 10;
+
+
+
+-- Average Order Value
+SELECT 
+    AVG(amount) AS avg_order_value
+FROM orders;
+
+
+-- Customer Analysis
+-- Top 10 Customers by Spending
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    SUM(o.amount) AS total_spent
+FROM customer c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_spent DESC
+LIMIT 10;
+
+
+--  Customer Count by Country
+SELECT 
+    country,
+    COUNT(*) AS customer_count
+FROM customer
+GROUP BY country
+ORDER BY customer_count DESC;
+
+
+-- Product Ratings and Sentiment
+-- Average Ratings per Product
+SELECT 
+    p.product_id,
+    p.name,
+    AVG(r.ratings) AS avg_rating
+FROM customer_product_ratings r
+JOIN product p ON r.product_id = p.product_id
+GROUP BY p.product_id, p.name
+ORDER BY avg_rating DESC;
+
+
+-- Sentiment Distribution
+SELECT 
+    sentiment,
+    COUNT(*) AS total_reviews
+FROM customer_product_ratings
+GROUP BY sentiment;
+
+
+--  Returns and Refunds
+-- Return Rate by Product
+SELECT 
+    p.product_id,
+    p.name,
+    COUNT(DISTINCT r.return_id) AS total_returns,
+    COUNT(DISTINCT oi.order_id) AS total_orders,
+    ROUND(COUNT(DISTINCT r.return_id) * 100.0 / COUNT(DISTINCT oi.order_id), 2) AS return_rate_percentage
+FROM product p
+LEFT JOIN returns r ON p.product_id = r.product_id
+LEFT JOIN orderitem oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, p.name
+ORDER BY return_rate_percentage DESC;
+
+
+-- Total Refunds by Reason
+SELECT 
+    reason,
+    COUNT(*) AS return_count,
+    SUM(amount_refunded) AS total_refunded
+FROM returns
+GROUP BY reason
+ORDER BY total_refunded DESC;
+
+
+-- Marketing Campaign Effectiveness
+-- Revenue Generated During Campaigns
+SELECT 
+    mc.campaign_name,
+    COUNT(DISTINCT o.order_id) AS orders_during_campaign,
+    SUM(o.amount) AS revenue_during_campaign
+FROM marketing_campaigns mc
+JOIN orders o ON mc.campaign_id = o.campaign_id
+GROUP BY mc.campaign_name
+ORDER BY revenue_during_campaign DESC;
+
+
+-- Product Sales by Campaign
+SELECT 
+    mc.campaign_name,
+    sc.subcategory_name,
+    SUM(oi.quantity) AS total_quantity_sold
+FROM marketing_campaigns mc
+JOIN campaign_product_subcategory cps ON mc.campaign_id = cps.campaign_id
+JOIN subcategory sc ON cps.subcategory_id = sc.subcategory_id
+JOIN product p ON p.subcategory_id = sc.subcategory_id
+JOIN orderitem oi ON oi.product_id = p.product_id
+JOIN orders o ON o.order_id = oi.order_id AND o.campaign_id = mc.campaign_id
+GROUP BY mc.campaign_name, sc.subcategory_name
+ORDER BY total_quantity_sold DESC;
+
+
+-- Supplier Performance
+-- Top Suppliers by Sales Volume
+SELECT 
+    s.supplier_name,
+    SUM(oi.subtotal) AS total_sales
+FROM supplier s
+JOIN orderitem oi ON s.supplier_id = oi.supplier_id
+GROUP BY s.supplier_name
+ORDER BY total_sales DESC;
