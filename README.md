@@ -58,3 +58,31 @@ Some of the key queries in this project include:
 ---
 
 ## 📁 Project Structure
+ecommerce_sql_project/
+│
+├── data/ # CSV datasets
+│ ├── category.csv
+│ ├── subcategory.csv
+│ ├── product.csv
+│ ├── ...
+│
+├── queries/ # SQL scripts
+│ ├── create_tables.sql
+│ ├── insert_data.sql
+│ ├── analysis_queries.sql
+│ ├── views.sql
+│
+└── README.md # Project documentation
+
+**Import Tables**
+Use pgAdmin's Import/Export to load CSVs.
+Or run create_tables.sql and insert_data.sql.
+
+**Run Queries**
+
+Open analysis_queries.sql in pgAdmin's Query Tool and execute.
+
+ **Author**
+Deepak Kumhar
+📧 Contact: (deepakkumhar129@gmail.com)
+📅 Year: 2025
